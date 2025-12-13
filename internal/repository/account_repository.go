@@ -6,7 +6,6 @@ import (
 )
 
 type AccountRepository interface {
-
     Create(ctx context.Context, account *domain.Account) (*domain.Account, error)
     GetByID(ctx context.Context, id int64) (*domain.Account, error)
     GetByOwnerID(ctx context.Context, ownerID int64, limit, offset int) ([]*domain.Account, error)
