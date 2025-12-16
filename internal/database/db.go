@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func INitDB(cfg *config.Config) *gorm.DB {
+func InitDB(cfg *config.Config) *gorm.DB {
 	dsn := cfg.GetDSN()
 	gormConfig := &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -21,7 +21,7 @@ func INitDB(cfg *config.Config) *gorm.DB {
 	}
 	log.Println("Database connection successfully established")
 
-	if err := db.AutoMigrate(db); err != nil {
+	if err := autoMigrate(db); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 	log.Println("Database migration completed successfully")

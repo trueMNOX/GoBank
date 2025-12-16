@@ -12,13 +12,13 @@ import (
 func SetupRouter(
 	tokenMaker token.TokenMaker,
 	authService service.AuthService,
-	accountServiec service.AccountService,
+	accountService service.AccountService,
 	transferService service.TransferService,
 ) *gin.Engine {
 	r := gin.Default()
 
 	authHandler := handler.NewAuthHandler(authService)
-	accountHandler := handler.NewAccountHandler(accountServiec)
+	accountHandler := handler.NewAccountHandler(accountService)
 	transferHandler := handler.NewTransferHandler(transferService)
 
 	api := r.Group("/api")
