@@ -8,7 +8,9 @@ import (
 	"syscall"
 	"time"
 
+	"Gobank/internal/cache"
 	"Gobank/internal/database"
+	"Gobank/internal/queue/rabbitmq"
 	"Gobank/internal/repository"
 	"Gobank/internal/service"
 	"Gobank/internal/token"
@@ -29,6 +31,12 @@ func main() {
 		log.Fatal("cannot create token maker: %v", err)
 	}
 
+	cache := cache.NewRedisCache(cfg)
+	producer, err := rabbitmq.NewRabbitMqProducer(cfg.RabbitMQURL)
+	if err != nil {
+		log.Fatal("cannot create rabbitmq producer: %v", err)
+	}
+
 	userRepo := repository.NewUserRepository(db)
 	accountRepo := repository.NewAccountRepository(db)
 	entryRepo := repository.NewEntryRepositoryImpl(db)
@@ -39,7 +47,7 @@ func main() {
 		log.Fatal("cannot create auth service: %v", err)
 	}
 	accountService := service.NewAccountService(accountRepo, userRepo)
-	transferService := service.NewTransferService(transferRepo, db, accountRepo)
+	transferService := service.NewTransferService(transferRepo, db, accountRepo, cache, producer)
 
 	r := httptransport.SetupRouter(tokenMaker, *authService, *accountService, *transferService)
 	srv := &http.Server{

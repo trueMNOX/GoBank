@@ -23,7 +23,12 @@ func (h *TransferHandler) CreateTransfer(c *gin.Context) {
 		return
 	}
 	authPayload := c.MustGet("authorization_payload").(*token.TokenPayload)
-	transfer, err := h.transferService.CreateTransfer(c, &req, authPayload.UserID)
+	idempotencyKey := c.GetHeader("Idempotency-Key")
+	if idempotencyKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "idempotency key is required"})
+		return
+	}
+	transfer, err := h.transferService.CreateTransfer(c, &req, authPayload.UserID, idempotencyKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
