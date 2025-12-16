@@ -45,10 +45,10 @@ func (r *userRepositoryImpl) GetById(ctx context.Context, id int64) (*domain.Use
 	}, nil
 }
 
-func (r *userRepositoryImpl) GetByUserName(ctx context.Context, username string) (*domain.User, error) {
+func (r *userRepositoryImpl) GetByUserName(ctx context.Context, username string) (*domain.User, string, error) {
 	var userModel models.UserModel
 	if err := r.db.WithContext(ctx).Where("username = ?", username).First(&userModel).Error; err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	return &domain.User{
 		ID:        userModel.ID,
@@ -56,13 +56,13 @@ func (r *userRepositoryImpl) GetByUserName(ctx context.Context, username string)
 		FullName:  userModel.FullName,
 		Email:     userModel.Email,
 		CreatedAt: userModel.CreatedAt,
-	}, nil
+	}, userModel.HashedPassword, nil
 }
 
-func (r *userRepositoryImpl) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (r *userRepositoryImpl) GetByEmail(ctx context.Context, email string) (*domain.User, string, error) {
 	var userModel models.UserModel
 	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&userModel).Error; err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	return &domain.User{
 		ID:        userModel.ID,
@@ -70,5 +70,5 @@ func (r *userRepositoryImpl) GetByEmail(ctx context.Context, email string) (*dom
 		FullName:  userModel.FullName,
 		Email:     userModel.Email,
 		CreatedAt: userModel.CreatedAt,
-	}, nil
+	}, userModel.HashedPassword, nil
 }

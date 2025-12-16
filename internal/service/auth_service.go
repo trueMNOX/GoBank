@@ -16,7 +16,7 @@ import (
 type AuthService struct {
 	userRepo             repository.UserRepository
 	tokenMaker           token.TokenMaker
-	accsessTokenDuration time.Duration
+	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 }
 
@@ -28,18 +28,18 @@ func NewAuthService(userRepo repository.UserRepository, cfg *config.Config) (*Au
 	return &AuthService{
 		userRepo:             userRepo,
 		tokenMaker:           tokenMaker,
-		accsessTokenDuration: time.Duration(cfg.AccessTokenDuration),
+		accessTokenDuration:  time.Duration(cfg.AccessTokenDuration),
 		refreshTokenDuration: time.Duration(cfg.RefreshTokenDuration),
 	}, nil
 }
 
 func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
-	existingUser, _ := s.userRepo.GetByEmail(ctx, req.Username)
-	if existingUser != nil {
+	existingUser, _, err := s.userRepo.GetByUserName(ctx, req.Username)
+	if err == nil && existingUser != nil {
 		return nil, fmt.Errorf("username already exists")
 	}
-	existingEmail, _ := s.userRepo.GetByEmail(ctx, req.Email)
-	if existingEmail != nil {
+	existingEmail, _, err := s.userRepo.GetByEmail(ctx, req.Email)
+	if err == nil && existingEmail != nil {
 		return nil, fmt.Errorf("email already exists")
 	}
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -55,7 +55,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	accsesToken, err := s.tokenMaker.CreateToken(createdUser.Username, createdUser.ID, s.accsessTokenDuration)
+	accessToken, err := s.tokenMaker.CreateToken(createdUser.Username, createdUser.ID, s.accessTokenDuration)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 		return nil, err
 	}
 	return &dto.AuthResponse{
-		AccessToken:  accsesToken,
+		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		User: dto.UserResponse{
 			ID:       createdUser.ID,
@@ -73,4 +73,44 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 			Email:    createdUser.Email,
 		},
 	}, nil
+}
+
+func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.AuthResponse, error) {
+	user, hashPassword, err := s.userRepo.GetByUserName(ctx, req.Username)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(req.Password))
+	if err != nil {
+		return nil, fmt.Errorf("invalid password")
+	}
+	accessToken, err := s.tokenMaker.CreateToken(user.Username, user.ID, s.accessTokenDuration)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := s.tokenMaker.CreateToken(user.Username, user.ID, s.refreshTokenDuration)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User: dto.UserResponse{
+			ID:       user.ID,
+			Username: user.Username,
+			FullName: user.FullName,
+			Email:    user.Email,
+		},
+	}, nil
+}
+func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (string, error) {
+	payload, err := s.tokenMaker.VerifyToken(req.RefreshToken)
+	if err != nil {
+		return "", err
+	}
+	accessToken, err := s.tokenMaker.CreateToken(payload.Username, payload.UserID, s.accessTokenDuration)
+	if err != nil {
+		return "", err
+	}
+	return accessToken, nil
 }
