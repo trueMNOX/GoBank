@@ -4,6 +4,8 @@ services:
     container_name: gobank-app
     depends_on:
       - db
+      - rabbitmq
+      - redis
     ports:
       - "8080:8080"
     restart: unless-stopped
@@ -20,6 +22,21 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - gobank-data:/var/lib/postgresql/data
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQUSER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQPASSWORD}
+    restart: always
+  redis:
+      container_name: redis
+      image: redis:7-alpine
+      ports:
+        - "6379:6379"
+      restart: always
 volumes:
   gobank-data:
-

@@ -28,8 +28,8 @@ func NewAuthService(userRepo repository.UserRepository, cfg *config.Config) (*Au
 	return &AuthService{
 		userRepo:             userRepo,
 		tokenMaker:           tokenMaker,
-		accessTokenDuration:  time.Duration(cfg.AccessTokenDuration),
-		refreshTokenDuration: time.Duration(cfg.RefreshTokenDuration),
+		accessTokenDuration:  time.Duration(cfg.AccessTokenDuration) * time.Minute,
+		refreshTokenDuration: time.Duration(cfg.RefreshTokenDuration) * time.Hour,
 	}, nil
 }
 
